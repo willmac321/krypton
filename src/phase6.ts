@@ -50,23 +50,31 @@ const mostCommon = (v: string, wordList: string[]): { count: number; list: strin
   return { count: rv, list: arr };
 };
 
-const getMostCommons = async (keyLen: number) => {
-  const d1 = await readFile('../data/krypton5/found1');
+const getMostCommons = async (keyLen: number, firstXChars?: number, pguess = '', matchReportLimit = 2) => {
+  const guess = pguess.toUpperCase().split('');
+
+  const d1F:string = (await readFile('../data/krypton6/found2')).replace(/\s/g, '');
+
+  const d1 = d1F.slice(0, firstXChars !== -1 ? firstXChars : d1F.length);
   let count = 0;
   let rv = '';
   let key = '';
+  let list: string[] = [];
 
-  const offsetArr = [...new Array(keyLen)].map((_, i) => Math.pow(26, i));
+  const offsetArr = [...new Array(keyLen - guess.length)].map((_, i) => Math.pow(26, i));
 
   // optimize word list a bit
   const wl = commonWords
-    .filter((f) => f.length >= 4)
+    // .filter((f) => f.length >= 4)
     .sort((a, b) => (a.length > b.length ? -1 : 1));
 
-  for (let i = 0; i < Math.pow(26, keyLen); i++) {
+  for (let i = 0; i < Math.pow(26, keyLen - guess.length); i++) {
     const offset = (r: number) => Math.floor(i / r);
 
-    const keys = offsetArr.map((e) => String.fromCharCode((offset(e) % 26) + 'A'.charCodeAt(0)));
+    const keys = [
+      ...guess,
+      ...offsetArr.map((e) => String.fromCharCode((offset(e) % 26) + 'A'.charCodeAt(0))),
+    ];
 
     const decrypted = vignereCipherDecrypt(d1, keys.join(''));
 
@@ -77,14 +85,15 @@ const getMostCommons = async (keyLen: number) => {
       count = mc.count;
       rv = decrypted;
       key = keys.join('');
+      list = mc.list;
     }
-    // if (mc.count >= 4 && (new Set(mc.list)).size >= 4) console.log(keys, mc, decrypted);
+    if (new Set(mc.list).size >= matchReportLimit) console.log(keys, mc, decrypted);
   }
-  return { rv, key };
+  return { rv, list, key, count };
 };
 
 export const trialWithFile = async (w: string): Promise<string> => {
-  const d1 = await readFile('../data/krypton5/krypton5');
+  const d1 = await readFile('../data/krypton6/krypton6');
   const rv = vignereCipherDecrypt(d1, w);
   console.log(rv);
   return rv;
