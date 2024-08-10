@@ -113,7 +113,7 @@ const phrase = (phrase: string, dict: string) => {
   ).sort((a, b) => (a[1] > b[1] ? -1 : 1));
 };
 
-const getPhase4 = async () => {
+export const getPhase4 = async () => {
   const data1 = await readFile('../data/krypton4/krypton4');
   console.log(await mostCommon(data1));
 };
