@@ -1,11 +1,12 @@
-import {getPhase4} from './phase4AndBelow';
-import { getMostCommons, howManyWithXLetters, trialWithFile, vignereCipherDecrypt } from './phase6';
+import {cycleThroughLengths, getMostCommonForAllFiles, trialWithFile} from "./phase6";
 
 
 const main = async () => {
   // file 1 ZQQ = the, qjrh - code, qjrhLYAT, qjrhjgbT, qjrhaswu
-  console.log(await getMostCommons(3, 4, '', 1));
-  // await trialWithFile('ZQQ');
-};
+  await getMostCommonForAllFiles(9, -1, 'XTHROG', 7);
+   // await trialWithFile('');
+  // console.log(await cycleThroughLengths(9, 8, 'E'));
+  // X [H, N, T, A] H [R, H] [O, R, P] [ O, G, U, I] [Y, U, H, C, T] [U, L] X
+}
 
 main();

@@ -33,6 +33,45 @@ const vignereCipherDecrypt = (code: string, key: string): string => {
     .join('');
 };
 
+const cycleThroughLengths = async (
+  offset = 0,
+  keyLen = 3,
+  letterToFind = 'E',
+): Promise<{ freq: number; letter: string }[][]> => {
+  const f1 = (await readFile('../data/krypton6/found1')).replace(/\s/g, '');
+  const f2 = (await readFile('../data/krypton6/found2')).replace(/\s/g, '');
+  const f3 = (await readFile('../data/krypton6/found3')).replace(/\s/g, '');
+
+  const rv: { freq: number; letter: string }[][] = [];
+
+  [f1, f2, f3].forEach((f) => {
+    let testP = '';
+    for (let t = offset; t < f.length; t += keyLen) {
+      testP += f[t];
+    }
+
+    const t = [];
+    for (let i = 0; i < 26; i++) {
+      const newFreq = vignereCipherDecrypt(testP, String.fromCharCode(65 + i))
+        .split('')
+        .filter((e) => e === letterToFind).length;
+      const freq = newFreq;
+      const letter = String.fromCharCode(65 + i);
+      t.push({ letter, freq });
+    }
+
+    rv.push(t.sort((a, b) => (a.freq < b.freq ? 1 : -1)));
+  });
+
+  // get intersection
+  let intersect = rv[0].slice(0,10).map(r=>r.letter)
+  .filter((r)=>rv[1].slice(0,10).map(t=>t.letter).includes(r))
+  .filter((r)=>rv[2].slice(0,10).map(t=>t.letter).includes(r));
+  console.log(intersect)
+
+  return rv;
+};
+
 const mostCommon = (v: string, wordList: string[]): { count: number; list: string[] } => {
   let localV = v;
 
@@ -50,16 +89,23 @@ const mostCommon = (v: string, wordList: string[]): { count: number; list: strin
   return { count: rv, list: arr };
 };
 
-const getMostCommons = async (keyLen: number, firstXChars?: number, pguess = '', matchReportLimit = 2) => {
+const getMostCommons = async (
+  file: string,
+  keyLen: number,
+  firstXChars?: number,
+  pguess = '',
+  matchReportLimit = 2,
+) => {
   const guess = pguess.toUpperCase().split('');
 
-  const d1F:string = (await readFile('../data/krypton6/found2')).replace(/\s/g, '');
+  const d1F: string = file;
 
   const d1 = d1F.slice(0, firstXChars !== -1 ? firstXChars : d1F.length);
   let count = 0;
   let rv = '';
   let key = '';
   let list: string[] = [];
+  let allRes = [];
 
   const offsetArr = [...new Array(keyLen - guess.length)].map((_, i) => Math.pow(26, i));
 
@@ -87,16 +133,44 @@ const getMostCommons = async (keyLen: number, firstXChars?: number, pguess = '',
       key = keys.join('');
       list = mc.list;
     }
-    if (new Set(mc.list).size >= matchReportLimit) console.log(keys, mc, decrypted);
+    if (new Set(mc.list).size >= matchReportLimit) allRes.push({ keys, ...mc, decrypted });
   }
-  return { rv, list, key, count };
+  return { rv, list, key, count, allRes };
 };
 
-export const trialWithFile = async (w: string): Promise<string> => {
-  const d1 = await readFile('../data/krypton6/krypton6');
-  const rv = vignereCipherDecrypt(d1, w);
-  console.log(rv);
-  return rv;
+const getMostCommonForAllFiles = async (
+  keyLen: number,
+  firstXChars?: number,
+  pguess = '',
+  matchReportLimit = 2,
+) => {
+  const f1 = (await readFile('../data/krypton6/found1')).replace(/\s/g, '');
+  const res1 = await getMostCommons(f1, keyLen, firstXChars, pguess, matchReportLimit);
+  const f2 = (await readFile('../data/krypton6/found2')).replace(/\s/g, '');
+  const res2 = await getMostCommons(f2, keyLen, firstXChars, pguess, matchReportLimit);
+  const f3 = (await readFile('../data/krypton6/found3')).replace(/\s/g, '');
+  const res3 = await getMostCommons(f3, keyLen, firstXChars, pguess, matchReportLimit);
+
+  [res1.allRes, res2.allRes, res3.allRes].forEach((r) => {
+    r.sort((a, b) => (a.keys[0] > b.keys[0] ? 1 : -1));
+    console.log('new result', r);
+  });
 };
 
-export { vignereCipherDecrypt, howManyWithXLetters, getMostCommons };
+export const trialWithFile = async (w: string) => {
+  const f1 = await readFile('../data/krypton6/found1');
+  const f2 = (await readFile('../data/krypton6/found2')).replace(/\s/g, '');
+  const f3 = (await readFile('../data/krypton6/found3')).replace(/\s/g, '');
+  [f1, f2, f3].forEach((d1) => {
+    const rv = vignereCipherDecrypt(d1, w);
+    console.log(rv);
+  });
+};
+
+export {
+  vignereCipherDecrypt,
+  howManyWithXLetters,
+  getMostCommons,
+  getMostCommonForAllFiles,
+  cycleThroughLengths,
+};
